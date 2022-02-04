@@ -15,13 +15,13 @@
  *  Version Author              Note
  *  0.9     Juha Tanskanen      Initial release
  *  0.10    Juha Tanskanen      Support for RGB lights and multiple lights
- *
+ *  0.11    Mehdi Chaouachi      Support for All Dimmable Devices
  */
 
 definition(
     name: "Light Control",
     namespace: "smartthings",
-    author: "Juha Tanskanen",
+    author: "Mehdi Chaoauchi (Originally by Juha Tanskanen)",
     description: "Control your lights with Ikea SYMFONISK Sound Controller",
     category: "SmartThings Internal",
     iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
@@ -34,6 +34,7 @@ preferences {
         input "levelDevice", "capability.switchLevel", title: "Light Level Control", multiple: false, required: true
         input "whiteBulbs", "capability.colorTemperature", title: "White Spectrum Light Bulb", multiple: true, required: false
         input "rgbBulbs", "capability.colorControl", title: "RGBW Light Bulb", multiple: true, required: false
+        input "dimmableDevices", "capability.switchLevel", title: "All Dimmable  Devices", multiple: true, required: false
     }
 }
 
@@ -83,10 +84,12 @@ def handleCommand(command, value) {
                 log.debug "Button clicked - ON/OFF"
                 log.debug "Bulb status $state.power"
                 if (state.power == "on") {
+                    dimmableDevices*.off()
                     whiteBulbs*.off()
                     rgbBulbs*.off()
                     state.power = "off"
                 } else {
+                    dimmableDevices*.on()
                     whiteBulbs*.on()
                     rgbBulbs*.on()
                     state.power = "on"
@@ -100,11 +103,13 @@ def handleCommand(command, value) {
             case "pushed_3x":
                 if (state.fullBrightness) {
                     log.debug "Button clicked treble - Return Dimmer Brigthness"
+                    dimmableDevices*.setLevel(levelDevice.currentValue("level"))
                     whiteBulbs*.setLevel(levelDevice.currentValue("level"))
                     rgbBulbs*.setLevel(levelDevice.currentValue("level"))
                     state.fullBrightness = 0
                 } else {
                     log.debug "Button clicked treble - Full Brigthness"
+                    dimmableDevices*.setLevel(100)
                     whiteBulbs*.setLevel(100)
                     rgbBulbs*.setLevel(100)
                     state.fullBrightness = 1
@@ -112,14 +117,19 @@ def handleCommand(command, value) {
                 break
         }
     } else {
-        whiteBulbs.each {
-            Integer currentLevel = it.currentValue("level")
-            log.debug "Set level of White Spectrum bulb $currentLevel -> $value"
+        dimmableDevices*.each {
+            String currentLevel = it.currentValue("level")
+            log.debug "Set level of dimmableDevices bulb $currentLevel -> $value"
         }
         rgbBulbs.each {
-            Integer currentLevel = it.currentValue("level")
+            String currentLevel = it.currentValue("level")
             log.debug "Set level of RGB bulb $currentLevel -> $value"
         }
+        whiteBulbs.each {
+            String currentLevel = it.currentValue("level")
+            log.debug "Set level of White Spectrum bulb $currentLevel -> $value"
+        }
+        dimmableDevices*.setLevel(value as Integer)
         whiteBulbs*.setLevel(value as Integer)
         rgbBulbs*.setLevel(value as Integer)
     }
@@ -130,9 +140,9 @@ def handleCommand(command, value) {
 private changeColorTemperature() {
 
     def temps = [
-        0: [name: 'Candle Light', temp: 2700],
-        1: [name: 'Warm White', temp: 3000],
-        2: [name: 'Cool White', temp: 4000]
+            0: [name: 'Candle Light', temp: 2700],
+            1: [name: 'Warm White', temp: 3000],
+            2: [name: 'Cool White', temp: 4000]
     ]
 
     def temp = temps.get(state.temp)
@@ -143,17 +153,17 @@ private changeColorTemperature() {
 private changeColor() {
 
     def colors = [
-        0: [name:'Soft White', hue: 23, saturation: 56],
-        1: [name:'White', hue: 52, saturation: 19],
-        2: [name:'Daylight', hue: 53, saturation: 91],
-        3: [name:'Warm White', hue: 20, saturation: 83],
-        4: [name:'Blue', hue: 70, saturation: 100],
-        5: [name:'Green', hue: 39, saturation: 100],
-        6: [name:'Yellow', hue: 25, saturation: 100],
-        7: [name:'Orange', hue: 10, saturation: 100],
-        8: [name:'Purple', hue: 75, saturation: 100],
-        9: [name:'Pink', hue: 83, saturation: 100],
-       10: [name:'Red', hue: 100, saturation: 100]
+            0: [name:'Soft White', hue: 23, saturation: 56],
+            1: [name:'White', hue: 52, saturation: 19],
+            2: [name:'Daylight', hue: 53, saturation: 91],
+            3: [name:'Warm White', hue: 20, saturation: 83],
+            4: [name:'Blue', hue: 70, saturation: 100],
+            5: [name:'Green', hue: 39, saturation: 100],
+            6: [name:'Yellow', hue: 25, saturation: 100],
+            7: [name:'Orange', hue: 10, saturation: 100],
+            8: [name:'Purple', hue: 75, saturation: 100],
+            9: [name:'Pink', hue: 83, saturation: 100],
+            10: [name:'Red', hue: 100, saturation: 100]
     ]
 
     def color = colors.get(state.color)
